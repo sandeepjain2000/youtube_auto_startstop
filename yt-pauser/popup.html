@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YT Interval Pauser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #ff4444;
+      --accent-dim: rgba(255, 68, 68, 0.15);
+      --green: #44ff88;
+      --green-dim: rgba(68, 255, 136, 0.12);
+      --text: #f0f0f0;
+      --muted: #666;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 280px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      padding: 20px;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .logo {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo svg { width: 18px; height: 18px; fill: white; }
+    .title {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.04em; line-height: 1.2;
+    }
+    .subtitle { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 20px;
+      font-size: 11px; font-family: 'Space Mono', monospace;
+      font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      margin-bottom: 18px; transition: all 0.3s ease;
+    }
+    .status-badge.off { background: rgba(255,255,255,0.05); color: var(--muted); }
+    .status-badge.on {
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid rgba(68,255,136,0.3);
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status-badge.on .dot { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+    .section-label {
+      font-size: 10px; font-family: 'Space Mono', monospace;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 8px;
+    }
+    .interval-control {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
+    }
+    .interval-row { display: flex; align-items: center; gap: 10px; }
+    .interval-btn {
+      width: 30px; height: 30px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      font-size: 18px; font-weight: 300; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0; line-height: 1;
+    }
+    .interval-btn:hover {
+      background: var(--accent-dim); border-color: var(--accent); color: var(--accent);
+    }
+    .interval-btn:active { transform: scale(0.92); }
+    .interval-input-wrap { flex: 1; position: relative; }
+    input[type="number"] {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text);
+      font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700;
+      text-align: center; padding: 4px 28px 4px 8px;
+      -moz-appearance: textfield; outline: none; transition: border-color 0.2s;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input[type="number"]:focus { border-color: var(--accent); }
+    .unit-label {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--muted);
+      font-family: 'Space Mono', monospace; pointer-events: none;
+    }
+    .range-hint { font-size: 10px; color: var(--muted); margin-top: 8px; text-align: center; }
+    .presets { display: flex; gap: 6px; margin-bottom: 16px; }
+    .preset-btn {
+      flex: 1; padding: 6px 4px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+      font-size: 11px; font-family: 'Space Mono', monospace;
+      cursor: pointer; transition: all 0.15s; text-align: center;
+    }
+    .preset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .preset-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+    /* Toggle switch */
+    .resume-toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .resume-label { font-size: 12px; color: var(--text); }
+    .switch {
+      position: relative; display: inline-block;
+      width: 38px; height: 22px; flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--border); border-radius: 22px; transition: 0.25s;
+    }
+    .slider:before {
+      content: ''; position: absolute;
+      height: 16px; width: 16px; left: 3px; bottom: 3px;
+      background: var(--muted); border-radius: 50%; transition: 0.25s;
+    }
+    .switch input:checked + .slider {
+      background: var(--accent-dim); border: 1px solid var(--accent);
+    }
+    .switch input:checked + .slider:before {
+      transform: translateX(16px); background: var(--accent);
+    }
+
+    .toggle-btn {
+      width: 100%; padding: 12px; border-radius: var(--radius); border: none;
+      font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.05em; cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+    }
+    .toggle-btn.start { background: var(--accent); color: white; }
+    .toggle-btn.start:hover {
+      background: #ff2222; transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(255,68,68,0.4);
+    }
+    .toggle-btn.stop {
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid rgba(68,255,136,0.3);
+    }
+    .toggle-btn.stop:hover { background: rgba(68,255,136,0.2); transform: translateY(-1px); }
+    .toggle-btn:active { transform: translateY(0) scale(0.98); }
+    .footer {
+      margin-top: 16px; font-size: 10px; color: var(--muted);
+      text-align: center; line-height: 1.5;
+    }
+    .not-youtube { text-align: center; padding: 10px 0; }
+    .not-youtube-icon { font-size: 32px; margin-bottom: 8px; }
+    .not-youtube p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="title">YT PAUSER</div>
+      <div class="subtitle">Interval auto-pause</div>
+    </div>
+  </div>
+
+  <div id="main-ui">
+    <div class="status-badge off" id="status-badge">
+      <span class="dot"></span>
+      <span id="status-text">Inactive</span>
+    </div>
+
+    <div class="section-label">Pause every</div>
+    <div class="interval-control">
+      <div class="interval-row">
+        <button class="interval-btn" id="btn-minus">−</button>
+        <div class="interval-input-wrap">
+          <input type="number" id="seconds-input" value="10" min="1" max="3600" />
+          <span class="unit-label">sec</span>
+        </div>
+        <button class="interval-btn" id="btn-plus">+</button>
+      </div>
+      <div class="range-hint">1 – 3600 seconds</div>
+    </div>
+
+    <div class="section-label">Quick select</div>
+    <div class="presets">
+      <button class="preset-btn" data-val="5">5s</button>
+      <button class="preset-btn active" data-val="10">10s</button>
+      <button class="preset-btn" data-val="30">30s</button>
+      <button class="preset-btn" data-val="60">1m</button>
+    </div>
+
+    <div class="section-label">Auto-resume</div>
+    <div class="interval-control" style="margin-bottom:16px;">
+      <div class="resume-toggle-row">
+        <span class="resume-label">Resume after pause</span>
+        <label class="switch">
+          <input type="checkbox" id="auto-resume-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="resume-duration-wrap" style="display:none; margin-top:12px;">
+        <div class="interval-row">
+          <button class="interval-btn" id="resume-minus">−</button>
+          <div class="interval-input-wrap">
+            <input type="number" id="resume-input" value="5" min="1" max="300" />
+            <span class="unit-label">sec</span>
+          </div>
+          <button class="interval-btn" id="resume-plus">+</button>
+        </div>
+        <div class="range-hint">Seconds until auto-resume</div>
+      </div>
+    </div>
+
+    <button class="toggle-btn start" id="toggle-btn">▶ Start</button>
+
+    <div class="footer">
+      Pauses only on timer · tab switching has no effect
+    </div>
+  </div>
+
+  <div id="not-youtube" style="display:none;">
+    <div class="not-youtube">
+      <div class="not-youtube-icon">📺</div>
+      <p>Navigate to a YouTube video to use this extension.</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
