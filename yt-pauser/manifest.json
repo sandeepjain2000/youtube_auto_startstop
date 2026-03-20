@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "YouTube Interval Pauser",
-  "version": "1.3",
-  "description": "Automatically pauses YouTube videos at a set interval.",
+  "version": "1.4",
+  "description": "Automatically pauses YouTube videos at a set interval and/or after each sentence in the captions.",
   "permissions": ["scripting", "tabs", "storage"],
   "host_permissions": ["https://www.youtube.com/*"],
   "action": {
